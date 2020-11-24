@@ -19,10 +19,6 @@ build-type:         Simple
 extra-source-files: CHANGELOG.md
                     README.md
 
-source-repository head
-  type:     git
-  location: https://github.com/obsidiansystems/cli-extras
-
 tested-with: GHC ==8.6.5 || ==8.8.4
 
 library
@@ -61,3 +57,7 @@ library
     , time            >=1.8.0.2  && <1.12
     , transformers    >=0.5.6.2  && <0.6
     , which           >=0.2      && <0.3
+
+source-repository head
+  type:     git
+  location: https://github.com/obsidiansystems/cli-extras
