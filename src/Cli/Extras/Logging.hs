@@ -71,9 +71,7 @@ mkDefaultCliConfig :: [String] -> IO CliConfig
 mkDefaultCliConfig cliArgs = do
   let logLevel = if any (`elem` ["-v", "--verbose"]) cliArgs then Debug else Notice
   notInteractive <- not <$> isInteractiveTerm
-  cliConf <- newCliConfig logLevel notInteractive notInteractive
-
-  return cliConf
+  newCliConfig logLevel notInteractive notInteractive
   where
     isInteractiveTerm = do
       isTerm <- hIsTerminalDevice stdout
@@ -92,7 +90,7 @@ newCliConfig
   :: Severity
   -> Bool
   -> Bool
-  -> IO (CliConfig)
+  -> IO CliConfig
 newCliConfig sev noColor noSpinner = do
   level <- newIORef sev
   lock <- newMVar False

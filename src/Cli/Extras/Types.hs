@@ -1,11 +1,8 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 module Cli.Extras.Types where
@@ -39,8 +36,6 @@ data Output
 type CliLog m = MonadLog Output m
 
 type CliThrow e m = MonadError e m
-
-deriving instance MonadFail m => MonadFail (LoggingT Output m)
 
 --------------------------------------------------------------------------------
 
