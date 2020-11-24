@@ -37,8 +37,6 @@ type CliLog m = MonadLog Output m
 
 type CliThrow e m = MonadError e m
 
-deriving instance MonadFail m => MonadFail (LoggingT Output m)
-
 --------------------------------------------------------------------------------
 
 data CliConfig = CliConfig
