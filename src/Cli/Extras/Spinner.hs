@@ -76,7 +76,7 @@ withSpinner' msg mkTrail action = do
       logMessage Output_ClearLine
       cliConf <- getCliConfig
       let theme = _cliConfig_theme cliConf
-      logsM <- modifyStack $ (popSpinner theme) $ case resultM of
+      logsM <- modifyStack $ popSpinner theme $ case resultM of
         Nothing ->
           ( TerminalString_Colorized Red $ _cliTheme_failed $ _cliConfig_theme cliConf
           , Just msg  -- Always display final message if there was an exception.
@@ -116,7 +116,7 @@ renderSpinnerStack
 renderSpinnerStack theme mark = L.intersperse space . go . L.reverse
   where
     go [] = []
-    go (x:[]) = mark : [x]
+    go [x] = mark : [x]
     go (x:xs) = arrow : x : go xs
     arrow = TerminalString_Colorized Blue $ _cliTheme_arrow theme
     space = TerminalString_Normal " "

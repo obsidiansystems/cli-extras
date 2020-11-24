@@ -1,8 +1,6 @@
--- | Package for writing great CLI apps.
---
--- See Demo.hs for an example
---
--- This package should eventually be made its own library.
+{-|
+Description: Convenience functions for writing CLI applications
+|-}
 module Cli.Extras
   (
   -- .Types

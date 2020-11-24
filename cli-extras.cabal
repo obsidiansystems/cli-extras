@@ -12,7 +12,7 @@ synopsis:
   Miscellaneous utilities for building and working with command line interfaces
 
 description:
-  This library was created to hold code that is shared among multiple command line apps.
+  Convenience functions for writing command line interfaces, providing facilities for logging, process management, and printing to the terminal.
 
 category:           Command Line
 build-type:         Simple
