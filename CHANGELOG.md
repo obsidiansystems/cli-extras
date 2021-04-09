@@ -1,5 +1,9 @@
 # Revision history for cli-extras
 
+## Unreleased
+
+* Loosen aeson version bounds
+
 ## 0.1.0.1
 
 * Loosen version bounds. Support GHC 8.8.4.
