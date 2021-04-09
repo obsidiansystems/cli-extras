@@ -1,8 +1,8 @@
 # Revision history for cli-extras
 
-## Unreleased
+## 0.1.0.2
 
-* Loosen aeson version bounds
+* Loosen aeson, which, ansi-terminal version bounds
 
 ## 0.1.0.1
 
