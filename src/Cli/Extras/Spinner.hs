@@ -10,7 +10,7 @@ module Cli.Extras.Spinner
   , withSpinner'
   ) where
 
-import Control.Concurrent (forkIO, killThread, threadDelay)
+import Control.Concurrent (killThread, threadDelay)
 import Control.Monad (forM_, (>=>))
 import Control.Monad.Catch (MonadMask, mask, onException)
 import Control.Monad.IO.Class
@@ -21,14 +21,14 @@ import Data.Maybe (isNothing)
 import Data.Text (Text)
 import System.Console.ANSI (Color (Blue, Cyan, Green, Red))
 
-import Cli.Extras.Logging (allowUserToMakeLoggingVerbose, putLog, handleLog)
+import Cli.Extras.Logging (allowUserToMakeLoggingVerbose, fork, putLog)
 import Cli.Extras.TerminalString (TerminalString (..), enquiryCode)
 import Cli.Extras.Theme
 import Cli.Extras.Types (CliLog, CliConfig (..), HasCliConfig, Output (..), getCliConfig)
 
 -- | Run an action with a CLI spinner.
 withSpinner
-  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig m)
+  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig e m)
   => Text -> m a -> m a
 withSpinner s = withSpinner' s $ Just $ const s
 
@@ -39,13 +39,13 @@ withSpinner s = withSpinner' s $ Just $ const s
 -- The 'no trail' property automatically carries over to sub-spinners (in that
 -- they won't leave a trail either).
 withSpinnerNoTrail
-  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig m)
+  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig e m)
   => Text -> m a -> m a
 withSpinnerNoTrail s = withSpinner' s Nothing
 
 -- | Advanced version that controls the display and content of the trail message.
 withSpinner'
-  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig m)
+  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig e m)
   => Text
   -> Maybe (a -> Text) -- ^ Leave an optional trail with the given message creator
   -> m a
@@ -59,15 +59,15 @@ withSpinner' msg mkTrail action = do
   where
     run = do
       -- Add this log to the spinner stack, and start a spinner if it is top-level.
-      cliConf <- getCliConfig
       modifyStack pushSpinner >>= \case
         True -> do -- Top-level spinner; fork a thread to manage output of anything on the stack
-          ctrleThread <- liftIO $ forkIO $ allowUserToMakeLoggingVerbose cliConf enquiryCode
+          ctrleThread <- fork $ allowUserToMakeLoggingVerbose enquiryCode
+          cliConf <- getCliConfig
           let theme = _cliConfig_theme cliConf
               spinner = coloredSpinner $ _cliTheme_spinner theme
-          spinnerThread <- liftIO $ forkIO $ runSpinner spinner $ \c -> do
-            logs <- renderSpinnerStack theme c . snd <$> readIORef (_cliConfig_spinnerStack cliConf)
-            handleLog cliConf $ Output_Overwrite logs
+          spinnerThread <- fork $ runSpinner spinner $ \c -> do
+            logs <- renderSpinnerStack theme c . snd <$> readStack
+            logMessage $ Output_Overwrite logs
           pure [ctrleThread, spinnerThread]
         False -> -- Sub-spinner; nothing to do.
           pure []
@@ -76,7 +76,7 @@ withSpinner' msg mkTrail action = do
       logMessage Output_ClearLine
       cliConf <- getCliConfig
       let theme = _cliConfig_theme cliConf
-      logsM <- modifyStack $ popSpinner theme $ case resultM of
+      logsM <- modifyStack $ (popSpinner theme) $ case resultM of
         Nothing ->
           ( TerminalString_Colorized Red $ _cliTheme_failed $ _cliConfig_theme cliConf
           , Just msg  -- Always display final message if there was an exception.
@@ -104,6 +104,8 @@ withSpinner' msg mkTrail action = do
         inTemporarySpinner = or newFlag  -- One of our parent spinners is temporary
         newFlag = drop 1 flag
         new = L.delete (TerminalString_Normal msg) old
+    readStack = liftIO . readIORef
+      =<< fmap _cliConfig_spinnerStack getCliConfig
     modifyStack f = liftIO . flip atomicModifyIORef' f
       =<< fmap _cliConfig_spinnerStack getCliConfig
 
@@ -116,7 +118,7 @@ renderSpinnerStack
 renderSpinnerStack theme mark = L.intersperse space . go . L.reverse
   where
     go [] = []
-    go [x] = mark : [x]
+    go (x:[]) = mark : [x]
     go (x:xs) = arrow : x : go xs
     arrow = TerminalString_Colorized Blue $ _cliTheme_arrow theme
     space = TerminalString_Normal " "
