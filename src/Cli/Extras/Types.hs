@@ -47,7 +47,8 @@ type CliThrow e m = MonadError e m
 
 -- | Log a message to the console.
 --
--- Logs safely even if there are ongoing spinners.
+-- The message is guaranteed to be logged uninterrupted, even if there
+-- are ongoing spinners.
 putLog :: CliLog m => Severity -> Text -> m ()
 putLog sev = logMessage . Output_Log . WithSeverity sev
 
