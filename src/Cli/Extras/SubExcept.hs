@@ -8,12 +8,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE CPP #-}
 module Cli.Extras.SubExcept where
 
 import Control.Lens (Prism', preview, review)
 import Control.Monad.Error.Class (MonadError (..))
 import Control.Monad.Reader
 import Control.Monad.Catch (MonadThrow, MonadCatch, MonadMask)
+#if !(MIN_VERSION_base(4, 13, 0))
+import Control.Monad.Fail (MonadFail)
+#endif
 import Control.Monad.Log
 
 -- | Wrap a Prism' in a newtype to avoid impredicativity problems

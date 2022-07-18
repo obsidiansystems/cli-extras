@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE CPP #-}
 
 -- | An extension of `System.Process` that integrates with logging (`Obelisk.CLI.Logging`)
 -- and is thus spinner friendly.
@@ -60,6 +61,10 @@ import qualified Data.Aeson as Aeson
 import Control.Monad.Log (Severity (..))
 import Cli.Extras.Logging (putLog, putLogRaw)
 import Cli.Extras.Types (CliLog, CliThrow)
+
+#if !(MIN_VERSION_base(4, 13, 0))
+import Control.Monad.Fail (MonadFail)
+#endif
 
 data ProcessSpec = ProcessSpec
   { _processSpec_createProcess :: !CreateProcess

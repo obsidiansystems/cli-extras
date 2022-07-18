@@ -8,6 +8,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 module Cli.Extras.Types where
 
 import Control.Concurrent.MVar (MVar)
@@ -25,6 +26,10 @@ import System.Exit (ExitCode (..), exitWith)
 
 import Cli.Extras.TerminalString (TerminalString)
 import Cli.Extras.Theme (CliTheme)
+
+#if !(MIN_VERSION_base(4, 13, 0))
+import Control.Monad.Fail (MonadFail)
+#endif
 
 --------------------------------------------------------------------------------
 
