@@ -57,6 +57,8 @@ library
     , time            >=1.8.0.2  && <1.12
     , transformers    >=0.5.6.2  && <0.6
     , which           >=0.1      && <0.3
+    , utf8-string     >=1.0.2    && <1.1
+    , shell-escape    >=0.2.0    && <0.3
 
 source-repository head
   type:     git
