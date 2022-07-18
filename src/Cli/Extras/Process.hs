@@ -35,7 +35,6 @@ module Cli.Extras.Process
 import Control.Monad ((<=<), join, void)
 import Control.Monad.Catch (MonadMask, bracketOnError)
 import Control.Monad.Except (throwError)
-import Control.Monad.Fail
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Lens (Prism', review)
 import qualified Data.ByteString as BS
@@ -44,7 +43,6 @@ import qualified Data.ByteString.UTF8 as BSU
 import Data.Function (fix)
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Monoid ((<>))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T

@@ -12,7 +12,6 @@ module Cli.Extras.Types where
 
 import Control.Concurrent.MVar (MVar)
 import Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
-import Control.Monad.Fail (MonadFail)
 import Control.Monad.Log (LoggingT(..), MonadLog, Severity (..), WithSeverity (..), logMessage)
 import Control.Monad.Reader (MonadIO, ReaderT (..), MonadReader (..), ask, mapReaderT)
 import Control.Monad.Writer (WriterT)
@@ -47,7 +46,7 @@ type CliThrow e m = MonadError e m
 putLog :: CliLog m => Severity -> Text -> m ()
 putLog sev = logMessage . Output_Log . WithSeverity sev
 
-newtype DieT e m a = DieT { unDieT :: ReaderT (e -> (Text, Int)) (LoggingT Output m) a }
+newtype DieT e m a = DieT { unDieT :: ReaderT (e -> (Text, ExitCode)) (LoggingT Output m) a }
   deriving
     ( Functor, Applicative, Monad, MonadIO, MonadFail
     , MonadThrow, MonadCatch, MonadMask
@@ -69,7 +68,7 @@ instance MonadIO m => MonadError e (DieT e m) where
     handler <- DieT ask
     let (output, exitCode) = handler e
     putLog Alert output
-    liftIO $ exitWith $ ExitFailure exitCode
+    liftIO $ exitWith $ exitCode
 
   -- Cannot catch
   catchError m _ = m
@@ -89,8 +88,9 @@ data CliConfig e = CliConfig
     _cliConfig_tipDisplayed :: IORef Bool
   , -- | Stack of logs from nested spinners
     _cliConfig_spinnerStack :: IORef ([Bool], [TerminalString])
-  , -- | Failure handler. How to log error and what exit status to use.
-    _cliConfig_errorLogExitCode :: e -> (Text, Int)
+  , -- | Handler for failures. Determines, given an error, what message
+    -- should be printed, and what the exit status should be.
+    _cliConfig_errorLogExitCode :: e -> (Text, ExitCode)
   , -- | Theme strings for spinners
     _cliConfig_theme :: CliTheme
   }

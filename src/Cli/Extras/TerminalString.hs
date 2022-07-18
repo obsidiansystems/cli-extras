@@ -14,7 +14,6 @@ import Control.Monad (when)
 import Control.Monad.Catch (bracket_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (MonadIO)
-import Data.Semigroup ((<>))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -81,4 +80,3 @@ resetCode = setSGRCode [Reset]
 
 getTerminalWidth :: IO (Maybe Int)
 getTerminalWidth = fmap TerminalSize.width <$> TerminalSize.size
-

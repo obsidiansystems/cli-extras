@@ -39,7 +39,6 @@ import Control.Monad.Log (Severity (..), WithSeverity (..), logMessage, runLoggi
 import Control.Monad.Loops (iterateUntil)
 import Control.Monad.Reader (MonadIO, ReaderT (..))
 import Data.IORef (atomicModifyIORef', newIORef, readIORef, writeIORef)
-import Data.Semigroup ((<>))
 import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -58,7 +57,7 @@ newCliConfig
   :: Severity
   -> Bool
   -> Bool
-  -> (e -> (Text, Int))
+  -> (e -> (Text, ExitCode))
   -> IO (CliConfig e)
 newCliConfig sev noColor noSpinner errorLogExitCode = do
   level <- newIORef sev

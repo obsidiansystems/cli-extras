@@ -12,11 +12,9 @@ module Cli.Extras.SubExcept where
 
 import Control.Lens (Prism', preview, review)
 import Control.Monad.Error.Class (MonadError (..))
-import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Reader
 import Control.Monad.Catch (MonadThrow, MonadCatch, MonadMask)
 import Control.Monad.Log
-import Control.Monad.Fail
 
 -- | Wrap a Prism' in a newtype to avoid impredicativity problems
 newtype WrappedPrism' a b = WrappedPrism' { unWrappedPrism' :: Prism' a b }
