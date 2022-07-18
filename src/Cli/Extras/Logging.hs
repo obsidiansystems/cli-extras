@@ -53,11 +53,17 @@ import qualified Cli.Extras.TerminalString as TS
 import Cli.Extras.Theme
 import Cli.Extras.Types
 
+-- | Create a new 'CliConfig', initialized with the provided values.
 newCliConfig
   :: Severity
-  -> Bool
-  -> Bool
+  -- ^ The initial log level. Messages below this severity will not be
+  -- logged, unless the log level is subsequently altered using
+  -- 'setLogLevel'.
+  -> Bool -- ^ Should ANSI terminal formatting be disabled?
+  -> Bool -- ^ Should spinners be disabled?
   -> (e -> (Text, ExitCode))
+  -- ^ How to display errors, and compute the 'ExitCode' corresponding
+  -- to each error.
   -> IO (CliConfig e)
 newCliConfig sev noColor noSpinner errorLogExitCode = do
   level <- newIORef sev
