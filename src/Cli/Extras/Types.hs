@@ -56,7 +56,6 @@ newtype DieT e m a = DieT { unDieT :: ReaderT (e -> (Text, ExitCode)) (LoggingT 
 instance MonadTrans (DieT e) where
   lift = DieT . lift . lift
 
--- | Error printer is private to DieT
 instance MonadReader r m => MonadReader r (DieT e m) where
   ask = DieT $ lift $ ask
   local = (\f (DieT a) -> DieT $ f a) . mapReaderT . local

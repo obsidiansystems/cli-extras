@@ -61,7 +61,7 @@ withSpinner' msg mkTrail action = do
       -- Add this log to the spinner stack, and start a spinner if it is top-level.
       modifyStack pushSpinner >>= \case
         True -> do -- Top-level spinner; fork a thread to manage output of anything on the stack
-          ctrleThread <- fork $ allowUserToMakeLoggingVerbose enquiryCode
+          ctrleThread <- fork $ allowUserToMakeLoggingVerbose enquiryCode "Ctrl+E"
           cliConf <- getCliConfig
           let theme = _cliConfig_theme cliConf
               spinner = coloredSpinner $ _cliTheme_spinner theme
@@ -118,7 +118,7 @@ renderSpinnerStack
 renderSpinnerStack theme mark = L.intersperse space . go . L.reverse
   where
     go [] = []
-    go (x:[]) = mark : [x]
+    go [x] = mark : [x]
     go (x:xs) = arrow : x : go xs
     arrow = TerminalString_Colorized Blue $ _cliTheme_arrow theme
     space = TerminalString_Normal " "

@@ -39,7 +39,7 @@ module Cli.Extras
   , callProcessAndLogOutput
   , createProcess
   , createProcess_
-  , exitCodeToException
+  , throwExitCode
   , overCreateProcess
   , proc
   , readCreateProcessWithExitCode

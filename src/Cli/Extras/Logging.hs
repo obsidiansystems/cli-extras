@@ -158,6 +158,7 @@ instance AsUnstructuredError Text where
 failWith :: (CliThrow e m, AsUnstructuredError e) => Text -> m a
 failWith = throwError . review asUnstructuredError
 
+-- | Log an error as though it were a warning, in a non-fatal way.
 errorToWarning
   :: (HasCliConfig e m, CliLog m)
   => e -> m ()
@@ -175,8 +176,13 @@ withExitFailMessage msg f = f `catch` \(e :: ExitCode) -> do
     ExitSuccess -> pure ()
   throwM e
 
--- | Write log to stdout, with colors (unless `noColor`)
-writeLog :: (MonadIO m) => Bool -> Bool -> WithSeverity Text -> m ()
+-- | Log a message to standard output.
+writeLog
+  :: (MonadIO m)
+  => Bool -- ^ Should a new line be printed after the message?
+  -> Bool -- ^ Should ANSI terminal formatting be used when printing the message?
+  -> WithSeverity Text -- ^ The message to print.
+  -> m ()
 writeLog withNewLine noColor (WithSeverity severity s) = if T.null s then pure () else write
   where
     write
@@ -196,29 +202,39 @@ writeLog withNewLine noColor (WithSeverity severity s) = if T.null s then pure (
     noticeColors = [SetColor Foreground Vivid Blue]
     debugColors = [SetConsoleIntensity FaintIntensity]
 
--- | Allow the user to immediately switch to verbose logging upon pressing a particular key.
+-- | Runs an action only when the current log level matches a given
+-- predicate.
+whenLogLevel
+  :: (MonadIO m, HasCliConfig e m)
+  => (Severity -> Bool) -- ^ What severity(ies) should this action run in?
+  -> m ()               -- ^ The action to run.
+  -> m ()
+whenLogLevel level f = do
+  l <- getLogLevel
+  when (level l) f
+
+-- | Allows the user to immediately switch to verbose logging when a
+-- particular sequence of characters is read from the terminal.
 --
 -- Call this function in a thread, and kill it to turn off keystroke monitoring.
 allowUserToMakeLoggingVerbose
   :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig e m)
-  => String  -- ^ The key to press in order to make logging verbose
+  => String  -- ^ The key(s) which should be read to indicate a shift in verbosity.
+  -> Text    -- ^ A description of the key that must be pressed.
   -> m ()
-allowUserToMakeLoggingVerbose keyCode = bracket showTip (liftIO . killThread) $ \_ -> do
-  unlessVerbose $ do
+allowUserToMakeLoggingVerbose keyCode desc = bracket showTip (liftIO . killThread) $ \_ -> do
+  whenLogLevel (/= verboseLogLevel) $ do
     liftIO $ hSetBuffering stdin NoBuffering
     _ <- iterateUntil (== keyCode) $ liftIO getChars
-    putLog Warning "Ctrl+e pressed; making output verbose (-v)"
+    putLog Warning $ desc <> " pressed; making output verbose (-v)"
     setLogLevel verboseLogLevel
   where
-    showTip = fork $ unlessVerbose $ do
+    showTip = fork $ whenLogLevel (/= verboseLogLevel) $ do
       conf <- getCliConfig
       liftIO $ threadDelay $ 10*1000000  -- Only show tip for actions taking too long (10 seconds or more)
       tipDisplayed <- liftIO $ atomicModifyIORef' (_cliConfig_tipDisplayed conf) $ (,) True
-      unless tipDisplayed $ unlessVerbose $ do -- Check again in case the user had pressed Ctrl+e recently
-        putLog Notice "Tip: Press Ctrl+e to display full output"
-    unlessVerbose f = do
-      l <- getLogLevel
-      unless (l == verboseLogLevel) f
+      unless tipDisplayed $ whenLogLevel (/= verboseLogLevel) $ do -- Check again in case the user had pressed Ctrl+e recently
+        putLog Notice $ "Tip: Press " <> desc <> " to display full output"
 
 -- | Like `getChar` but also retrieves the subsequently pressed keys.
 --
@@ -233,6 +249,8 @@ getChars = reverse <$> f mempty
         True -> f (x:xs)
         False -> return (x:xs)
 
+-- | Fork a computation in 'CliT', sharing the configuration with the
+-- child thread.
 fork :: (HasCliConfig e m, MonadIO m) => CliT e IO () -> m ThreadId
 fork f = do
   c <- getCliConfig
