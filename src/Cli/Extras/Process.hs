@@ -59,7 +59,7 @@ import qualified Data.Aeson as Aeson
 
 import Control.Monad.Log (Severity (..))
 import Cli.Extras.Logging (putLog, putLogRaw)
-import Cli.Extras.Types (CliLog, CliThrow)
+import Cli.Extras.Types (CommandLineLog, CommandLineThrow)
 
 data ProcessSpec = ProcessSpec
   { _processSpec_createProcess :: !CreateProcess
@@ -101,7 +101,7 @@ instance AsProcessFailure ProcessFailure where
   asProcessFailure = id
 
 readProcessAndLogStderr
-  :: (MonadIO m, CliLog m, CliThrow e m, AsProcessFailure e, MonadFail m)
+  :: (MonadIO m, CommandLineLog m, CommandLineThrow e m, AsProcessFailure e, MonadFail m)
   => Severity -> ProcessSpec -> m Text
 readProcessAndLogStderr sev process = do
   (out, _err) <- withProcess process $ \_out err -> do
@@ -109,7 +109,7 @@ readProcessAndLogStderr sev process = do
   liftIO $ T.decodeUtf8With lenientDecode <$> BS.hGetContents out
 
 readProcessJSONAndLogStderr
-  :: (Aeson.FromJSON a, MonadIO m, CliLog m, CliThrow e m, AsProcessFailure e, MonadFail m)
+  :: (Aeson.FromJSON a, MonadIO m, CommandLineLog m, CommandLineThrow e m, AsProcessFailure e, MonadFail m)
   => Severity -> ProcessSpec -> m a
 readProcessJSONAndLogStderr sev process = do
   (out, _err) <- withProcess process $ \_out err -> do
@@ -122,7 +122,7 @@ readProcessJSONAndLogStderr sev process = do
       throwError $ review asProcessFailure $ ProcessFailure (Process.cmdspec $ _processSpec_createProcess process) 0
 
 readCreateProcessWithExitCode
-  :: (MonadIO m, CliLog m, CliThrow e m, AsProcessFailure e)
+  :: (MonadIO m, CommandLineLog m, CommandLineThrow e m, AsProcessFailure e)
   => ProcessSpec -> m (ExitCode, String, String)
 readCreateProcessWithExitCode procSpec = do
   process <- mkCreateProcess procSpec
@@ -137,7 +137,7 @@ readCreateProcessWithExitCode procSpec = do
 -- which case it is advisable to call it with a non-Error severity for stderr, like
 -- `callProcessAndLogOutput (Debug, Debug)`.
 readProcessAndLogOutput
-  :: (MonadIO m, CliLog m, CliThrow e m, AsProcessFailure e, MonadFail m)
+  :: (MonadIO m, CommandLineLog m, CommandLineThrow e m, AsProcessFailure e, MonadFail m)
   => (Severity, Severity) -> ProcessSpec -> m Text
 readProcessAndLogOutput (sev_out, sev_err) process = do
   (_, Just out, Just err, p) <- createProcess $ overCreateProcess
@@ -160,7 +160,7 @@ readProcessAndLogOutput (sev_out, sev_err) process = do
 -- which case it is advisable to call it with a non-Error severity for stderr, like
 -- `callProcessAndLogOutput (Debug, Debug)`.
 callProcessAndLogOutput
-  :: (MonadIO m, CliLog m, CliThrow e m, AsProcessFailure e, MonadFail m)
+  :: (MonadIO m, CommandLineLog m, CommandLineThrow e m, AsProcessFailure e, MonadFail m)
   => (Severity, Severity) -> ProcessSpec -> m ()
 callProcessAndLogOutput (sev_out, sev_err) process =
   void $ withProcess process $ \out err -> do
@@ -173,7 +173,7 @@ callProcessAndLogOutput (sev_out, sev_err) process =
 
 -- | Like 'System.Process.createProcess' but also logs (debug) the process being run
 createProcess
-  :: (MonadIO m, CliLog m)
+  :: (MonadIO m, CommandLineLog m)
   => ProcessSpec -> m (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
 createProcess procSpec = do
   p <- mkCreateProcess procSpec
@@ -182,7 +182,7 @@ createProcess procSpec = do
 
 -- | Like `System.Process.createProcess_` but also logs (debug) the process being run
 createProcess_
-  :: (MonadIO m, CliLog m)
+  :: (MonadIO m, CommandLineLog m)
   => String -> ProcessSpec -> m (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
 createProcess_ name procSpec = do
   p <- mkCreateProcess procSpec
@@ -199,7 +199,7 @@ mkCreateProcess (ProcessSpec p override') = do
 
 -- | Like `System.Process.callProcess` but also logs (debug) the process being run
 callProcess
-  :: (MonadIO m, CliLog m)
+  :: (MonadIO m, CommandLineLog m)
   => String -> [String] -> m ()
 callProcess exe args = do
   putLog Debug $ "Calling process " <> T.pack exe <> " with args: " <> T.pack (show args)
@@ -207,14 +207,14 @@ callProcess exe args = do
 
 -- | Like `System.Process.callCommand` but also logs (debug) the command being run
 callCommand
-  :: (MonadIO m, CliLog m)
+  :: (MonadIO m, CommandLineLog m)
   => String -> m ()
 callCommand cmd = do
   putLog Debug $ "Calling command " <> T.pack cmd
   liftIO $ Process.callCommand cmd
 
 withProcess
-  :: (MonadIO m, CliLog m, CliThrow e m, AsProcessFailure e, MonadFail m)
+  :: (MonadIO m, CommandLineLog m, CommandLineThrow e m, AsProcessFailure e, MonadFail m)
   => ProcessSpec -> (Handle -> Handle -> m ()) -> m (Handle, Handle)
 withProcess process f = do -- TODO: Use bracket.
   -- FIXME: Using `withCreateProcess` here leads to something operating illegally on closed handles.
@@ -233,7 +233,7 @@ streamHandle sev = Streams.map (sev,) <=< handleToInputStream
 
 -- | Read from an input stream and log its contents
 streamToLog
-  :: (MonadIO m, CliLog m)
+  :: (MonadIO m, CommandLineLog m)
   => InputStream (Severity, BSC.ByteString) -> m ()
 streamToLog stream = fix $ \loop -> do
   liftIO (Streams.read stream) >>= \case

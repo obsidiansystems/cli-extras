@@ -1,5 +1,9 @@
 # Revision history for cli-extras
 
+## 0.2.0.0
+
+* Rename CliT → CommandLineT
+
 ## 0.1.0.2
 
 * Loosen aeson, which, ansi-terminal version bounds

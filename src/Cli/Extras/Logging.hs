@@ -10,9 +10,9 @@
 -- | Spinner.hs and Process.hs work on this guarantee.
 module Cli.Extras.Logging
   ( AsUnstructuredError (..)
-  , newCliConfig
-  , mkDefaultCliConfig
-  , runCli
+  , newCommandLineConfig
+  , mkDefaultCommandLineConfig
+  , runCommandLine
   , verboseLogLevel
   , isOverwrite
   , getSeverity
@@ -59,24 +59,24 @@ import Cli.Extras.Types
 -- | Log a message to the console.
 --
 -- Logs safely even if there are ongoing spinners.
-putLog :: CliLog m => Severity -> Text -> m ()
+putLog :: CommandLineLog m => Severity -> Text -> m ()
 putLog sev = logMessage . Output_Log . WithSeverity sev
 
-putLog' :: CliConfig -> Severity -> Text -> IO ()
+putLog' :: CommandLineConfig -> Severity -> Text -> IO ()
 putLog' conf sev t = runLoggingT (putLog sev t) (handleLog conf)
 
 --TODO: Use optparse-applicative instead
--- Given the program's command line arguments, produce a reasonable CliConfig
-mkDefaultCliConfig :: [String] -> IO CliConfig
-mkDefaultCliConfig cliArgs = do
-  let logLevel = if any (`elem` ["-v", "--verbose"]) cliArgs then Debug else Notice
+-- Given the program's command line arguments, produce a reasonable CommandLineConfig
+mkDefaultCommandLineConfig :: [String] -> IO CommandLineConfig
+mkDefaultCommandLineConfig commandLineArgs = do
+  let logLevel = if any (`elem` ["-v", "--verbose"]) commandLineArgs then Debug else Notice
   notInteractive <- not <$> isInteractiveTerm
-  newCliConfig logLevel notInteractive notInteractive
+  newCommandLineConfig logLevel notInteractive notInteractive
   where
     isInteractiveTerm = do
       isTerm <- hIsTerminalDevice stdout
       -- Running in bash/fish/zsh completion
-      let inShellCompletion = isInfixOf "completion" $ unwords cliArgs
+      let inShellCompletion = isInfixOf "completion" $ unwords commandLineArgs
 
       -- Respect the user’s TERM environment variable. Dumb terminals
       -- like Eshell cannot handle lots of control sequences that the
@@ -86,12 +86,12 @@ mkDefaultCliConfig cliArgs = do
 
       return $ isTerm && not inShellCompletion && not isDumb
 
-newCliConfig
+newCommandLineConfig
   :: Severity
   -> Bool
   -> Bool
-  -> IO CliConfig
-newCliConfig sev noColor noSpinner = do
+  -> IO CommandLineConfig
+newCommandLineConfig sev noColor noSpinner = do
   level <- newIORef sev
   lock <- newMVar False
   tipDisplayed <- newIORef False
@@ -100,14 +100,14 @@ newCliConfig sev noColor noSpinner = do
   let theme = if maybe False supportsUnicode textEncoding
         then unicodeTheme
         else noUnicodeTheme
-  return $ CliConfig level noColor noSpinner lock tipDisplayed stack theme
+  return $ CommandLineConfig level noColor noSpinner lock tipDisplayed stack theme
 
-runCli :: MonadIO m => CliConfig -> CliT e m a -> m (Either e a)
-runCli c =
+runCommandLine :: MonadIO m => CommandLineConfig -> CommandLineT e m a -> m (Either e a)
+runCommandLine c =
     runExceptT
   . flip runLoggingT (handleLog c)
   . flip runReaderT c
-  . unCliT
+  . unCommandLineT
 
 verboseLogLevel :: Severity
 verboseLogLevel = Debug
@@ -123,25 +123,25 @@ getSeverity = \case
   Output_LogRaw (WithSeverity sev _) -> Just sev
   _ -> Nothing
 
-getLogLevel :: (MonadIO m, HasCliConfig m) => m Severity
-getLogLevel = getLogLevel' =<< getCliConfig
+getLogLevel :: (MonadIO m, HasCommandLineConfig m) => m Severity
+getLogLevel = getLogLevel' =<< getCommandLineConfig
 
-getLogLevel' :: MonadIO m => CliConfig -> m Severity
-getLogLevel' = liftIO . readIORef . _cliConfig_logLevel
+getLogLevel' :: MonadIO m => CommandLineConfig -> m Severity
+getLogLevel' = liftIO . readIORef . _commandLineConfig_logLevel
 
-setLogLevel :: (MonadIO m, HasCliConfig m) => Severity -> m ()
+setLogLevel :: (MonadIO m, HasCommandLineConfig m) => Severity -> m ()
 setLogLevel sev = do
-  conf <- getCliConfig
+  conf <- getCommandLineConfig
   setLogLevel' conf sev
 
-setLogLevel' :: MonadIO m => CliConfig -> Severity -> m ()
-setLogLevel' conf sev = liftIO $ writeIORef (_cliConfig_logLevel conf) sev
+setLogLevel' :: MonadIO m => CommandLineConfig -> Severity -> m ()
+setLogLevel' conf sev = liftIO $ writeIORef (_commandLineConfig_logLevel conf) sev
 
-handleLog :: MonadIO m => CliConfig -> Output -> m ()
+handleLog :: MonadIO m => CommandLineConfig -> Output -> m ()
 handleLog conf output = do
   level <- getLogLevel' conf
-  liftIO $ modifyMVar_ (_cliConfig_lock conf) $ \wasOverwriting -> do
-    let noColor = _cliConfig_noColor conf
+  liftIO $ modifyMVar_ (_commandLineConfig_lock conf) $ \wasOverwriting -> do
+    let noColor = _commandLineConfig_noColor conf
     case getSeverity output of
       Nothing -> handleLog' noColor output
       Just sev -> if sev > level
@@ -175,7 +175,7 @@ handleLog' noColor output = do
   return $ isOverwrite output
 
 -- | Like `putLog` but without the implicit newline added.
-putLogRaw :: CliLog m => Severity -> Text -> m ()
+putLogRaw :: CommandLineLog m => Severity -> Text -> m ()
 putLogRaw sev = logMessage . Output_LogRaw . WithSeverity sev
 
 -- | Indicates unstructured errors form one variant (or conceptual projection)
@@ -189,13 +189,13 @@ instance AsUnstructuredError Text where
   asUnstructuredError = id
 
 -- | Like `putLog Alert` but also abrupts the program.
-failWith :: (CliThrow e m, AsUnstructuredError e) => Text -> m a
+failWith :: (CommandLineThrow e m, AsUnstructuredError e) => Text -> m a
 failWith = throwError . review asUnstructuredError
 
 -- | Intercept ExitFailure exceptions and log the given alert before exiting.
 --
 -- This is useful when you want to provide contextual information to a deeper failure.
-withExitFailMessage :: (CliLog m, MonadCatch m) => Text -> m a -> m a
+withExitFailMessage :: (CommandLineLog m, MonadCatch m) => Text -> m a -> m a
 withExitFailMessage msg f = f `catch` \(e :: ExitCode) -> do
   case e of
     ExitFailure _ -> putLog Alert msg
@@ -223,7 +223,7 @@ writeLog withNewLine noColor (WithSeverity severity s) = if T.null s then pure (
 --
 -- Call this function in a thread, and kill it to turn off keystroke monitoring.
 allowUserToMakeLoggingVerbose
-  :: CliConfig
+  :: CommandLineConfig
   -> String  -- ^ The key to press in order to make logging verbose
   -> IO ()
 allowUserToMakeLoggingVerbose conf keyCode = do
@@ -232,7 +232,7 @@ allowUserToMakeLoggingVerbose conf keyCode = do
         unless (l == verboseLogLevel) f
       showTip = liftIO $ forkIO $ unlessVerbose $ do
         liftIO $ threadDelay $ 10*1000000  -- Only show tip for actions taking too long (10 seconds or more)
-        tipDisplayed <- liftIO $ atomicModifyIORef' (_cliConfig_tipDisplayed conf) $ (,) True
+        tipDisplayed <- liftIO $ atomicModifyIORef' (_commandLineConfig_tipDisplayed conf) $ (,) True
         unless tipDisplayed $ unlessVerbose $ do -- Check again in case the user had pressed Ctrl+e recently
           putLog' conf Notice "Tip: Press Ctrl+e to display full output"
   bracket showTip (liftIO . killThread) $ \_ -> do
