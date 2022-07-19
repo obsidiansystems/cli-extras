@@ -24,11 +24,11 @@ import System.Console.ANSI (Color (Blue, Cyan, Green, Red))
 import Cli.Extras.Logging (allowUserToMakeLoggingVerbose, putLog, handleLog)
 import Cli.Extras.TerminalString (TerminalString (..), enquiryCode)
 import Cli.Extras.Theme
-import Cli.Extras.Types (CliLog, CliConfig (..), HasCliConfig, Output (..), getCliConfig)
+import Cli.Extras.Types (CommandLineLog, CommandLineConfig (..), HasCommandLineConfig, Output (..), getCommandLineConfig)
 
 -- | Run an action with a CLI spinner.
 withSpinner
-  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig m)
+  :: (MonadIO m, MonadMask m, CommandLineLog m, HasCommandLineConfig m)
   => Text -> m a -> m a
 withSpinner s = withSpinner' s $ Just $ const s
 
@@ -39,50 +39,50 @@ withSpinner s = withSpinner' s $ Just $ const s
 -- The 'no trail' property automatically carries over to sub-spinners (in that
 -- they won't leave a trail either).
 withSpinnerNoTrail
-  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig m)
+  :: (MonadIO m, MonadMask m, CommandLineLog m, HasCommandLineConfig m)
   => Text -> m a -> m a
 withSpinnerNoTrail s = withSpinner' s Nothing
 
 -- | Advanced version that controls the display and content of the trail message.
 withSpinner'
-  :: (MonadIO m, MonadMask m, CliLog m, HasCliConfig m)
+  :: (MonadIO m, MonadMask m, CommandLineLog m, HasCommandLineConfig m)
   => Text
   -> Maybe (a -> Text) -- ^ Leave an optional trail with the given message creator
   -> m a
   -> m a
 withSpinner' msg mkTrail action = do
-  cliConf <- getCliConfig
-  let noSpinner = _cliConfig_noSpinner cliConf
+  commandLineConf <- getCommandLineConfig
+  let noSpinner = _commandLineConfig_noSpinner commandLineConf
   if noSpinner
     then putLog Notice msg >> action
     else bracket' run cleanup $ const action
   where
     run = do
       -- Add this log to the spinner stack, and start a spinner if it is top-level.
-      cliConf <- getCliConfig
+      commandLineConf <- getCommandLineConfig
       modifyStack pushSpinner >>= \case
         True -> do -- Top-level spinner; fork a thread to manage output of anything on the stack
-          ctrleThread <- liftIO $ forkIO $ allowUserToMakeLoggingVerbose cliConf enquiryCode
-          let theme = _cliConfig_theme cliConf
-              spinner = coloredSpinner $ _cliTheme_spinner theme
+          ctrleThread <- liftIO $ forkIO $ allowUserToMakeLoggingVerbose commandLineConf enquiryCode
+          let theme = _commandLineConfig_theme commandLineConf
+              spinner = coloredSpinner $ _commandLineTheme_spinner theme
           spinnerThread <- liftIO $ forkIO $ runSpinner spinner $ \c -> do
-            logs <- renderSpinnerStack theme c . snd <$> readIORef (_cliConfig_spinnerStack cliConf)
-            handleLog cliConf $ Output_Overwrite logs
+            logs <- renderSpinnerStack theme c . snd <$> readIORef (_commandLineConfig_spinnerStack commandLineConf)
+            handleLog commandLineConf $ Output_Overwrite logs
           pure [ctrleThread, spinnerThread]
         False -> -- Sub-spinner; nothing to do.
           pure []
     cleanup tids resultM = do
       liftIO $ mapM_ killThread tids
       logMessage Output_ClearLine
-      cliConf <- getCliConfig
-      let theme = _cliConfig_theme cliConf
+      commandLineConf <- getCommandLineConfig
+      let theme = _commandLineConfig_theme commandLineConf
       logsM <- modifyStack $ popSpinner theme $ case resultM of
         Nothing ->
-          ( TerminalString_Colorized Red $ _cliTheme_failed $ _cliConfig_theme cliConf
+          ( TerminalString_Colorized Red $ _commandLineTheme_failed $ _commandLineConfig_theme commandLineConf
           , Just msg  -- Always display final message if there was an exception.
           )
         Just result ->
-          ( TerminalString_Colorized Green $ _cliTheme_done $ _cliConfig_theme cliConf
+          ( TerminalString_Colorized Green $ _commandLineTheme_done $ _commandLineConfig_theme commandLineConf
           , mkTrail <*> pure result
           )
       -- Last message, finish off with newline.
@@ -105,11 +105,11 @@ withSpinner' msg mkTrail action = do
         newFlag = drop 1 flag
         new = L.delete (TerminalString_Normal msg) old
     modifyStack f = liftIO . flip atomicModifyIORef' f
-      =<< fmap _cliConfig_spinnerStack getCliConfig
+      =<< fmap _commandLineConfig_spinnerStack getCommandLineConfig
 
 -- | How nested spinner logs should be displayed
 renderSpinnerStack
-  :: CliTheme
+  :: CommandLineTheme
   -> TerminalString  -- ^ That which comes before the final element in stack
   -> [TerminalString]  -- ^ Spinner elements in reverse order
   -> [TerminalString]
@@ -118,7 +118,7 @@ renderSpinnerStack theme mark = L.intersperse space . go . L.reverse
     go [] = []
     go [x] = mark : [x]
     go (x:xs) = arrow : x : go xs
-    arrow = TerminalString_Colorized Blue $ _cliTheme_arrow theme
+    arrow = TerminalString_Colorized Blue $ _commandLineTheme_arrow theme
     space = TerminalString_Normal " "
 
 -- | A spinner is simply an infinite list of strings that supplant each other in a delayed loop, creating the

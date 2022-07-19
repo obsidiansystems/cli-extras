@@ -4,13 +4,13 @@ Description: Convenience functions for writing CLI applications
 module Cli.Extras
   (
   -- .Types
-    CliLog
-  , CliThrow
-  , CliT(..)
-  , runCli
-  , CliConfig
-  , HasCliConfig
-  , getCliConfig
+    CommandLineLog
+  , CommandLineThrow
+  , CommandLineT(..)
+  , runCommandLine
+  , CommandLineConfig
+  , HasCommandLineConfig
+  , getCommandLineConfig
   , Output
 
   -- .Spinner
@@ -20,8 +20,8 @@ module Cli.Extras
 
   -- .Logging
   , AsUnstructuredError (..)
-  , newCliConfig
-  , mkDefaultCliConfig
+  , newCommandLineConfig
+  , mkDefaultCommandLineConfig
   , getLogLevel
   , putLog
   , failWith

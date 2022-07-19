@@ -3,27 +3,27 @@ module Cli.Extras.Theme where
 
 import Data.Text (Text)
 
-data CliTheme = CliTheme
-  { _cliTheme_done :: Text
-  , _cliTheme_failed :: Text
-  , _cliTheme_arrow :: Text
-  , _cliTheme_spinner :: SpinnerTheme
+data CommandLineTheme = CommandLineTheme
+  { _commandLineTheme_done :: Text
+  , _commandLineTheme_failed :: Text
+  , _commandLineTheme_arrow :: Text
+  , _commandLineTheme_spinner :: SpinnerTheme
   }
 
 type SpinnerTheme = [Text]
 
-unicodeTheme :: CliTheme
-unicodeTheme = CliTheme
-  { _cliTheme_done = "✔"
-  , _cliTheme_failed = "✖"
-  , _cliTheme_arrow = "⇾"
-  , _cliTheme_spinner = ["◐", "◓", "◑", "◒"]
+unicodeTheme :: CommandLineTheme
+unicodeTheme = CommandLineTheme
+  { _commandLineTheme_done = "✔"
+  , _commandLineTheme_failed = "✖"
+  , _commandLineTheme_arrow = "⇾"
+  , _commandLineTheme_spinner = ["◐", "◓", "◑", "◒"]
   }
 
-noUnicodeTheme :: CliTheme
-noUnicodeTheme = CliTheme
-  { _cliTheme_done = "DONE"
-  , _cliTheme_failed = "FAILED"
-  , _cliTheme_arrow = "->"
-  , _cliTheme_spinner = ["|", "/", "-", "\\"]
+noUnicodeTheme :: CommandLineTheme
+noUnicodeTheme = CommandLineTheme
+  { _commandLineTheme_done = "DONE"
+  , _commandLineTheme_failed = "FAILED"
+  , _commandLineTheme_arrow = "->"
+  , _commandLineTheme_spinner = ["|", "/", "-", "\\"]
   }

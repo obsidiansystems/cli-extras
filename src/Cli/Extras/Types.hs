@@ -5,11 +5,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 module Cli.Extras.Types where
 
 import Control.Concurrent.MVar (MVar)
 import Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
-import Control.Monad.Fail (MonadFail)
 import Control.Monad.Log (LoggingT(..), MonadLog, Severity (..), WithSeverity (..))
 import Control.Monad.Reader (MonadIO, ReaderT (..), MonadReader (..), ask)
 import Control.Monad.Writer (WriterT)
@@ -20,8 +20,12 @@ import Data.IORef (IORef)
 import Data.Text (Text)
 
 import Cli.Extras.TerminalString (TerminalString)
-import Cli.Extras.Theme (CliTheme)
+import Cli.Extras.Theme (CommandLineTheme)
 import Cli.Extras.SubExcept
+
+#if !MIN_VERSION_base(4, 13, 0)
+import Control.Monad.Fail
+#endif
 
 --------------------------------------------------------------------------------
 
@@ -33,61 +37,61 @@ data Output
   | Output_ClearLine  -- Clear the line
   deriving (Eq, Show, Ord)
 
-type CliLog m = MonadLog Output m
+type CommandLineLog m = MonadLog Output m
 
-type CliThrow e m = MonadError e m
+type CommandLineThrow e m = MonadError e m
 
 --------------------------------------------------------------------------------
 
-data CliConfig = CliConfig
+data CommandLineConfig = CommandLineConfig
   { -- | We are capable of changing the log level at runtime
-    _cliConfig_logLevel :: IORef Severity
+    _commandLineConfig_logLevel :: IORef Severity
   , -- | Disallow coloured output
-    _cliConfig_noColor :: Bool
+    _commandLineConfig_noColor :: Bool
   , -- | Disallow spinners
-    _cliConfig_noSpinner :: Bool
+    _commandLineConfig_noSpinner :: Bool
   , -- | Whether the last message was an Overwrite output
-    _cliConfig_lock :: MVar Bool
+    _commandLineConfig_lock :: MVar Bool
   , -- | Whether the user tip (to make verbose) was already displayed
-    _cliConfig_tipDisplayed :: IORef Bool
+    _commandLineConfig_tipDisplayed :: IORef Bool
   , -- | Stack of logs from nested spinners
-    _cliConfig_spinnerStack :: IORef ([Bool], [TerminalString])
+    _commandLineConfig_spinnerStack :: IORef ([Bool], [TerminalString])
   , -- | Theme strings for spinners
-    _cliConfig_theme :: CliTheme
+    _commandLineConfig_theme :: CommandLineTheme
   }
 
-class Monad m => HasCliConfig m where
-  getCliConfig :: m CliConfig
+class Monad m => HasCommandLineConfig m where
+  getCommandLineConfig :: m CommandLineConfig
 
-instance HasCliConfig m => HasCliConfig (ReaderT r m) where
-  getCliConfig = lift getCliConfig
+instance HasCommandLineConfig m => HasCommandLineConfig (ReaderT r m) where
+  getCommandLineConfig = lift getCommandLineConfig
 
-instance (Monoid w, HasCliConfig m) => HasCliConfig (WriterT w m) where
-  getCliConfig = lift getCliConfig
+instance (Monoid w, HasCommandLineConfig m) => HasCommandLineConfig (WriterT w m) where
+  getCommandLineConfig = lift getCommandLineConfig
 
-instance HasCliConfig m => HasCliConfig (StateT s m) where
-  getCliConfig = lift getCliConfig
+instance HasCommandLineConfig m => HasCommandLineConfig (StateT s m) where
+  getCommandLineConfig = lift getCommandLineConfig
 
-instance HasCliConfig m => HasCliConfig (ExceptT e m) where
-  getCliConfig = lift getCliConfig
+instance HasCommandLineConfig m => HasCommandLineConfig (ExceptT e m) where
+  getCommandLineConfig = lift getCommandLineConfig
 
-instance HasCliConfig m => HasCliConfig (SubExceptT e eSub m) where
-  getCliConfig = lift getCliConfig
+instance HasCommandLineConfig m => HasCommandLineConfig (SubExceptT e eSub m) where
+  getCommandLineConfig = lift getCommandLineConfig
 
 --------------------------------------------------------------------------------
 
-newtype CliT e m a = CliT
-  { unCliT :: ReaderT CliConfig (LoggingT Output (ExceptT e m)) a
+newtype CommandLineT e m a = CommandLineT
+  { unCommandLineT :: ReaderT CommandLineConfig (LoggingT Output (ExceptT e m)) a
   }
   deriving
     ( Functor, Applicative, Monad, MonadIO, MonadFail
     , MonadThrow, MonadCatch, MonadMask
-    , MonadLog Output -- CliLog
-    , MonadError e -- CliThrow
+    , MonadLog Output -- CommandLineLog
+    , MonadError e -- CommandLineThrow
     )
 
-instance MonadTrans (CliT e) where
-  lift = CliT . lift . lift . lift
+instance MonadTrans (CommandLineT e) where
+  lift = CommandLineT . lift . lift . lift
 
-instance Monad m => HasCliConfig (CliT e m)where
-  getCliConfig = CliT ask
+instance Monad m => HasCommandLineConfig (CommandLineT e m)where
+  getCommandLineConfig = CommandLineT ask
