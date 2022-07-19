@@ -5,11 +5,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 module Cli.Extras.Types where
 
 import Control.Concurrent.MVar (MVar)
 import Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
-import Control.Monad.Fail (MonadFail)
 import Control.Monad.Log (LoggingT(..), MonadLog, Severity (..), WithSeverity (..))
 import Control.Monad.Reader (MonadIO, ReaderT (..), MonadReader (..), ask)
 import Control.Monad.Writer (WriterT)
@@ -22,6 +22,10 @@ import Data.Text (Text)
 import Cli.Extras.TerminalString (TerminalString)
 import Cli.Extras.Theme (CommandLineTheme)
 import Cli.Extras.SubExcept
+
+#if !MIN_VERSION_base(4, 13, 0)
+import Control.Monad.Fail
+#endif
 
 --------------------------------------------------------------------------------
 
