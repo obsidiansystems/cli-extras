@@ -21,10 +21,10 @@ module Cli.Extras
   -- .Logging
   , AsUnstructuredError (..)
   , newCliConfig
-  , mkDefaultCliConfig
   , getLogLevel
   , putLog
   , failWith
+  , errorToWarning
   , withExitFailMessage
 
   -- Control.Monad.Log
@@ -33,12 +33,13 @@ module Cli.Extras
   -- .Process
   , AsProcessFailure (..)
   , ProcessFailure (..)
-  , prettyProcessFailure
   , ProcessSpec (..)
   , callCommand
   , callProcess
   , callProcessAndLogOutput
+  , createProcess
   , createProcess_
+  , throwExitCode
   , overCreateProcess
   , proc
   , readCreateProcessWithExitCode
@@ -46,6 +47,7 @@ module Cli.Extras
   , readProcessAndLogStderr
   , readProcessJSONAndLogStderr
   , reconstructCommand
+  , runProcess_
   , setCwd
   , setDelegateCtlc
   , setEnvOverride
