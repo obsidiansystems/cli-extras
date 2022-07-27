@@ -1,6 +1,6 @@
 # Revision history for cli-extras
 
-## 0.2.0.1
+## 0.2.1.0
 
 * [#7](https://github.com/obsidiansystems/cli-extras/pull/7) add `runProc`, `runProcSilently` and `readProc`.
 
