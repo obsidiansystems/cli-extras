@@ -31,6 +31,9 @@ module Cli.Extras.Process
   , setEnvOverride
   , shell
   , waitForProcess
+  , runProc
+  , runProcSilently
+  , readProc
   ) where
 
 import Control.Monad ((<=<), join, void)
@@ -290,3 +293,42 @@ reconstructCommand p = case p of
 
 reconstructProcSpec :: ProcessSpec -> Text
 reconstructProcSpec = reconstructCommand . Process.cmdspec . _processSpec_createProcess
+
+-- | A wrapper for 'callProcessAndLogOutput' with sensible default
+-- verbosities: standard output gets the 'Notice' severity and standard
+-- error gets 'Error'.
+runProc
+  :: ( MonadIO m
+     , MonadLog Output m
+     , MonadError e m
+     , AsProcessFailure e
+     , MonadFail m
+     ) => ProcessSpec -> m ()
+runProc = callProcessAndLogOutput (Notice, Error)
+
+-- | Like 'runProc', but the child process' output and error streams get
+-- the 'Debug' severity.
+runProcSilently
+  :: ( MonadIO m
+     , MonadLog Output m
+     , MonadError e m
+     , AsProcessFailure e
+     , MonadFail m
+     ) => ProcessSpec -> m ()
+runProcSilently = callProcessAndLogOutput (Debug, Debug)
+
+-- | A wrapper for 'readProcessAndLogOutput' with sensible default
+-- verbosities: standard output gets the 'Debug' severity and standard
+-- error gets 'Error'.
+--
+-- The child process' output gets the 'Debug' severity rather than the
+-- 'Notice' severity because it is first and foremost /returned by this
+-- function/, so you can log it afterwards in a reasonable manner.
+readProc
+  :: ( MonadIO m
+     , MonadLog Output m
+     , MonadError e m
+     , AsProcessFailure e
+     , MonadFail m
+     ) => ProcessSpec -> m Text
+readProc = readProcessAndLogOutput (Debug, Error)
