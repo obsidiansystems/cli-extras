@@ -1,5 +1,9 @@
 # Revision history for cli-extras
 
+## 0.2.1.0
+
+* [#7](https://github.com/obsidiansystems/cli-extras/pull/7) add `runProc`, `runProcSilently` and `readProc`.
+
 ## 0.2.0.0
 
 * [#6](https://github.com/obsidiansystems/cli-extras/pull/6) `cli-extras` now depends on `utf8-string` and `shell-escape`
