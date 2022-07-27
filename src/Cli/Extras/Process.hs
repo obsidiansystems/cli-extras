@@ -299,22 +299,26 @@ reconstructProcSpec = reconstructCommand . Process.cmdspec . _processSpec_create
 -- error gets 'Error'.
 runProc
   :: ( MonadIO m
-     , MonadLog Output m
-     , MonadError e m
+     , CliLog m
+     , CliThrow e m
      , AsProcessFailure e
      , MonadFail m
-     ) => ProcessSpec -> m ()
+     , MonadMask m
+     )
+  => ProcessSpec -> m ()
 runProc = callProcessAndLogOutput (Notice, Error)
 
 -- | Like 'runProc', but the child process' output and error streams get
 -- the 'Debug' severity.
 runProcSilently
   :: ( MonadIO m
-     , MonadLog Output m
-     , MonadError e m
+     , CliLog m
+     , CliThrow e m
      , AsProcessFailure e
      , MonadFail m
-     ) => ProcessSpec -> m ()
+     , MonadMask m
+     )
+  => ProcessSpec -> m ()
 runProcSilently = callProcessAndLogOutput (Debug, Debug)
 
 -- | A wrapper for 'readProcessAndLogOutput' with sensible default
@@ -326,9 +330,10 @@ runProcSilently = callProcessAndLogOutput (Debug, Debug)
 -- function/, so you can log it afterwards in a reasonable manner.
 readProc
   :: ( MonadIO m
-     , MonadLog Output m
-     , MonadError e m
+     , CliLog m
+     , CliThrow e m
      , AsProcessFailure e
      , MonadFail m
-     ) => ProcessSpec -> m Text
+     )
+  => ProcessSpec -> m Text
 readProc = readProcessAndLogOutput (Debug, Error)
