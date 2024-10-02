@@ -1,5 +1,13 @@
 # Revision history for cli-extras
 
+## 0.2.1.0 -- revision 2
+
+* Support GHC 9.10
+
+## 0.2.1.0 -- revision 1
+
+* Support GHC 9.8
+
 ## 0.2.1.0
 
 * [#7](https://github.com/obsidiansystems/cli-extras/pull/7) add `runProc`, `runProcSilently` and `readProc`.
