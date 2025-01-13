@@ -1,5 +1,9 @@
 # Revision history for cli-extras
 
+## 0.2.1.1
+
+* Relax some bounds
+
 ## 0.2.1.0 -- revision 2
 
 * Support GHC 9.10
